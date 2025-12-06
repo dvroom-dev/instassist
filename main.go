@@ -355,36 +355,41 @@ func isShiftEnter(msg tea.KeyMsg) bool {
 }
 
 func parseOptions(raw string) ([]optionEntry, error) {
-	start := strings.Index(raw, "{")
-	if start < 0 {
-		return nil, fmt.Errorf("no JSON object found")
-	}
-	decoder := json.NewDecoder(strings.NewReader(raw[start:]))
-
-	var resp optionResponse
-	if err := decoder.Decode(&resp); err != nil {
-		return nil, fmt.Errorf("decode: %w", err)
-	}
-	if len(resp.Options) == 0 {
-		return nil, fmt.Errorf("no options returned")
-	}
-
-	opts := resp.Options
-	sort.SliceStable(opts, func(i, j int) bool {
-		oi := opts[i].RecommendationOrder
-		oj := opts[j].RecommendationOrder
-		if oi > 0 && oj > 0 && oi != oj {
-			return oi < oj
+	var lastOpts []optionEntry
+	search := raw
+	for {
+		idx := strings.Index(search, `{"options"`)
+		if idx < 0 {
+			break
 		}
-		if oi > 0 && oj <= 0 {
-			return true
+		segment := search[idx:]
+		var resp optionResponse
+		decoder := json.NewDecoder(strings.NewReader(segment))
+		if err := decoder.Decode(&resp); err == nil && len(resp.Options) > 0 {
+			opts := resp.Options
+			sort.SliceStable(opts, func(i, j int) bool {
+				oi := opts[i].RecommendationOrder
+				oj := opts[j].RecommendationOrder
+				if oi > 0 && oj > 0 && oi != oj {
+					return oi < oj
+				}
+				if oi > 0 && oj <= 0 {
+					return true
+				}
+				if oi <= 0 && oj > 0 {
+					return false
+				}
+				return i < j
+			})
+			lastOpts = opts
 		}
-		if oi <= 0 && oj > 0 {
-			return false
-		}
-		return i < j
-	})
-	return opts, nil
+		// move past this occurrence
+		search = search[idx+len(`{"options`):]
+	}
+	if len(lastOpts) > 0 {
+		return lastOpts, nil
+	}
+	return nil, fmt.Errorf("failed to parse options JSON")
 }
 
 func (m *model) moveSelection(delta int) {
@@ -410,24 +415,19 @@ func (m model) renderOptionsTable() string {
 	}
 
 	var rows []string
-	header := fmt.Sprintf("%-6s │ %-s", "Order", "Option")
-	rows = append(rows, header)
-
-	rowStyle := lipgloss.NewStyle()
-	selStyle := lipgloss.NewStyle().Reverse(true)
 
 	for i, opt := range m.options {
-		order := opt.RecommendationOrder
-		if order <= 0 {
-			order = i + 1
-		}
-		line := fmt.Sprintf("%-6d │ %s — %s", order, cleanText(opt.Value), cleanText(opt.Description))
+		value := cleanText(opt.Value)
+		desc := cleanText(opt.Description)
+		prefix := "  "
 		if i == m.selected {
-			line = selStyle.Render(line)
-		} else {
-			line = rowStyle.Render(line)
+			prefix = "> "
 		}
+		line := prefix + value
 		rows = append(rows, line)
+		if desc != "" {
+			rows = append(rows, "    "+desc)
+		}
 	}
 
 	return strings.Join(rows, "\n")
@@ -504,6 +504,8 @@ func (m model) View() string {
 			}
 		} else {
 			b.WriteString(m.renderOptionsTable())
+			b.WriteString("\n\nSelected: ")
+			b.WriteString(m.selectedValue())
 			b.WriteString("\n")
 		}
 	} else {
