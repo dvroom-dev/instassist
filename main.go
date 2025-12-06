@@ -179,6 +179,8 @@ func (m model) handleResponse(msg responseMsg) (tea.Model, tea.Cmd) {
 
 	if msg.err != nil {
 		m.status = fmt.Sprintf("error from %s • %s", msg.cli, helpViewing)
+		m.options = nil
+		m.selected = 0
 		return m, nil
 	}
 
@@ -353,43 +355,36 @@ func isShiftEnter(msg tea.KeyMsg) bool {
 }
 
 func parseOptions(raw string) ([]optionEntry, error) {
-	tryParse := func(s string) ([]optionEntry, error) {
-		var resp optionResponse
-		if err := json.Unmarshal([]byte(s), &resp); err != nil {
-			return nil, err
-		}
-		if len(resp.Options) == 0 {
-			return nil, fmt.Errorf("no options returned")
-		}
-		opts := resp.Options
-		sort.SliceStable(opts, func(i, j int) bool {
-			oi := opts[i].RecommendationOrder
-			oj := opts[j].RecommendationOrder
-			if oi > 0 && oj > 0 && oi != oj {
-				return oi < oj
-			}
-			if oi > 0 && oj <= 0 {
-				return true
-			}
-			if oi <= 0 && oj > 0 {
-				return false
-			}
-			return i < j
-		})
-		return opts, nil
+	start := strings.Index(raw, "{")
+	if start < 0 {
+		return nil, fmt.Errorf("no JSON object found")
+	}
+	decoder := json.NewDecoder(strings.NewReader(raw[start:]))
+
+	var resp optionResponse
+	if err := decoder.Decode(&resp); err != nil {
+		return nil, fmt.Errorf("decode: %w", err)
+	}
+	if len(resp.Options) == 0 {
+		return nil, fmt.Errorf("no options returned")
 	}
 
-	if opts, err := tryParse(raw); err == nil {
-		return opts, nil
-	}
-	start := strings.Index(raw, "{")
-	end := strings.LastIndex(raw, "}")
-	if start >= 0 && end > start {
-		if opts, err := tryParse(raw[start : end+1]); err == nil {
-			return opts, nil
+	opts := resp.Options
+	sort.SliceStable(opts, func(i, j int) bool {
+		oi := opts[i].RecommendationOrder
+		oj := opts[j].RecommendationOrder
+		if oi > 0 && oj > 0 && oi != oj {
+			return oi < oj
 		}
-	}
-	return nil, fmt.Errorf("failed to parse options from CLI output")
+		if oi > 0 && oj <= 0 {
+			return true
+		}
+		if oi <= 0 && oj > 0 {
+			return false
+		}
+		return i < j
+	})
+	return opts, nil
 }
 
 func (m *model) moveSelection(delta int) {
