@@ -13,7 +13,7 @@ help: ## Show this help message
 
 build: ## Build the binary
 	@echo "Building $(BINARY_NAME) v$(VERSION)..."
-	go build -ldflags "-X main.version=$(VERSION)" -o $(BINARY_NAME) .
+	go build -ldflags "-X instassist.version=$(VERSION)" -o $(BINARY_NAME) ./cmd/insta
 	@echo "Build complete: ./$(BINARY_NAME)"
 
 install: build ## Build and install to system
@@ -50,8 +50,8 @@ test: build ## Build and run a quick test
 run: build ## Build and run in interactive mode
 	./$(BINARY_NAME)
 
-go-install: ## Install with go install (places binary in GOBIN or GOPATH/bin as instassist)
+go-install: ## Install with go install (places binary in GOBIN or GOPATH/bin as insta)
 	GO_BIN=$$(go env GOBIN); \
 	if [ -z "$$GO_BIN" ]; then GO_BIN="$$(go env GOPATH)/bin"; fi; \
-	go install ./...; \
-	echo "Binary installed to $$GO_BIN/instassist (symlink to insta if desired: ln -sf $$GO_BIN/instassist $$GO_BIN/insta)"
+	go install ./cmd/insta; \
+	echo "Binary installed to $$GO_BIN/insta"

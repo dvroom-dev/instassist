@@ -1,4 +1,4 @@
-package main
+package instassist
 
 import (
 	"flag"
@@ -16,7 +16,8 @@ const (
 	defaultCLIName = "codex"
 )
 
-func main() {
+// Main is the entrypoint for the insta-assist application.
+func Main() {
 	cliFlag := flag.String("cli", defaultCLIName, "default CLI to use: codex, claude, gemini, or opencode")
 	promptFlag := flag.String("prompt", "", "prompt to send (non-interactive mode)")
 	selectFlag := flag.Int("select", -1, "auto-select option by index (0-based, use with -prompt)")

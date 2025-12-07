@@ -59,9 +59,8 @@ This will:
 ### Install with `go install`
 
 ```bash
-go install ./...
-# Binary name: instassist (in $(go env GOBIN) or $(go env GOPATH)/bin)
-# Optional: ln -sf $(go env GOPATH)/bin/instassist /usr/local/bin/insta
+go install ./cmd/insta
+# Binary name: insta (in $(go env GOBIN) or $(go env GOPATH)/bin)
 ```
 
 ### Manual Build
@@ -70,7 +69,7 @@ go install ./...
 # Build only
 make build
 # or
-go build -o insta .
+go build -o insta ./cmd/insta
 
 # Run from current directory
 ./insta
