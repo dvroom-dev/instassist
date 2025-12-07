@@ -30,8 +30,8 @@ const (
 	defaultCLIName = "codex"
 	titleText      = "instassist"
 
-	helpInput   = "tab: switch cli • enter: send • ctrl+r: send & auto-run • shift+enter/alt+enter: newline"
-	helpViewing = "up/down/j/k: select • enter: copy & exit • ctrl+r: run & exit • shift+enter: new prompt • tab: switch cli • esc/q: quit"
+	helpInput   = "tab: switch cli • ctrl+enter: send • ctrl+r: send & run • enter/alt+enter: newline"
+	helpViewing = "up/down/j/k: select • enter: copy & exit • ctrl+r: run & exit • alt+enter: new prompt • tab: switch cli • esc/q: quit"
 )
 
 type viewMode int
@@ -219,7 +219,7 @@ func newModel(defaultCLI string) model {
 	input.CharLimit = 0
 	input.Prompt = ""
 	input.ShowLineNumbers = false
-	input.SetHeight(1) // Start with 1 line, will expand as needed
+	input.SetHeight(1) // Start with 1 line, will expand dynamically
 
 	cliIndex := 0
 	for i, opt := range cliOptions {
@@ -249,6 +249,10 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.height = msg.Height
 		m.ready = true
 		m.resizeComponents()
+		// Also adjust textarea height when window resizes
+		if m.mode == modeInput {
+			m.adjustTextareaHeight()
+		}
 		return m, nil
 	case responseMsg:
 		return m.handleResponse(msg)
@@ -257,9 +261,12 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	default:
 	}
 
+	// Handle all other messages (including paste) in input mode
 	if m.mode == modeInput {
 		var cmd tea.Cmd
 		m.input, cmd = m.input.Update(msg)
+		// Always adjust height after any update
+		m.adjustTextareaHeight()
 		return m, cmd
 	}
 
@@ -346,16 +353,17 @@ func (m model) handleInputKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m, cmd
 	}
 	if isCtrlR(msg) {
-		// Submit and auto-execute first result
+		// Ctrl+R: Submit and auto-execute first result
 		m.autoExecute = true
 		return m.submitPrompt()
 	}
-	if msg.Type == tea.KeyEnter {
-		// Regular submit - no auto-execute
+	if isCtrlEnter(msg) {
+		// Ctrl+Enter: Submit prompt (no auto-execute)
 		m.autoExecute = false
 		return m.submitPrompt()
 	}
-
+	// Plain Enter: Let textarea handle it (inserts newline)
+	// This allows paste to work correctly without triggering submit
 	return m.updateInput(msg)
 }
 
@@ -429,20 +437,31 @@ func (m model) handleRunningKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 }
 
 func (m *model) adjustTextareaHeight() {
-	// Dynamically adjust height based on content (1-10 lines)
-	lines := strings.Count(m.input.Value(), "\n") + 1
+	// Use textarea's actual line count (includes wrapping)
+	lines := m.input.LineCount()
 	if lines < 1 {
 		lines = 1
 	}
-	if lines > 10 {
-		lines = 10
+	if lines > 20 {
+		lines = 20 // Cap at 20 lines for reasonable UI
 	}
+
+	oldHeight := m.input.Height()
 	m.input.SetHeight(lines)
+
+	// If height increased significantly (paste/multi-line), reset viewport
+	if lines > oldHeight && lines > 2 {
+		// Save cursor position and reset viewport to show all content
+		content := m.input.Value()
+		m.input.CursorStart()       // Reset viewport to top
+		m.input.SetCursor(len(content)) // Restore cursor to end by position
+	}
 }
 
 func (m model) updateInput(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
 	m.input, cmd = m.input.Update(msg)
+	// Always adjust height after any update
 	m.adjustTextareaHeight()
 	return m, cmd
 }
@@ -509,18 +528,31 @@ func (m *model) resizeComponents() {
 }
 
 func isShiftEnter(msg tea.KeyMsg) bool {
+	// Ctrl+J is the most reliable way to insert newline
 	if msg.Type == tea.KeyCtrlJ {
 		return true
 	}
+	// Alt+Enter works in most terminals
 	if msg.Type == tea.KeyEnter && msg.Alt {
 		return true
 	}
+	// Some terminals send these string representations
 	s := msg.String()
-	return s == "shift+enter" || s == "alt+enter"
+	if s == "shift+enter" || s == "alt+enter" {
+		return true
+	}
+	// Note: Shift+Enter often doesn't work because many terminals
+	// can't distinguish it from plain Enter. Use Alt+Enter or Ctrl+J instead.
+	return false
 }
 
 func isCtrlR(msg tea.KeyMsg) bool {
 	return msg.Type == tea.KeyCtrlR || msg.String() == "ctrl+r"
+}
+
+func isCtrlEnter(msg tea.KeyMsg) bool {
+	s := msg.String()
+	return s == "ctrl+enter"
 }
 
 func parseOptions(raw string) ([]optionEntry, error) {

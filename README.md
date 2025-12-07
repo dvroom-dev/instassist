@@ -100,17 +100,17 @@ instassist -cli claude
 #### Input Mode
 - `Enter` - Send prompt to AI
 - `Ctrl+R` - Send prompt and auto-execute first result
-- `Shift+Enter` or `Alt+Enter` - Insert newline
+- `Alt+Enter` or `Ctrl+J` - Insert newline (Shift+Enter may not work in all terminals)
 - `Tab` - Switch between codex/claude
-- `Ctrl+C` - Quit
+- `Ctrl+C` or `Esc` - Quit
 
 #### Viewing Mode (Results)
 - `Up/Down` or `j/k` - Navigate options
 - `Enter` - Copy selected option to clipboard and exit
 - `Ctrl+R` - Execute selected option and exit
-- `Shift+Enter` or `Alt+Enter` - Start new prompt
+- `Alt+Enter` - Start new prompt
 - `Tab` - Switch between codex/claude
-- `Esc` or `q` - Quit without action
+- `Ctrl+C`, `Esc`, or `q` - Quit without action
 
 ### CLI Mode (Non-Interactive)
 
