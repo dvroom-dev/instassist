@@ -1,8 +1,8 @@
 .PHONY: build install uninstall clean test help
 
-BINARY_NAME=instassist
+BINARY_NAME=insta
 INSTALL_PATH=/usr/local/bin
-SCHEMA_PATH=/usr/local/share/$(BINARY_NAME)
+SCHEMA_PATH=/usr/local/share/insta-assist
 VERSION=1.0.0
 
 help: ## Show this help message

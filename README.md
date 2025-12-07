@@ -1,4 +1,4 @@
-# instassist
+# ✨ insta-assist
 
 A beautiful, fast TUI (Terminal User Interface) for getting instant AI-powered command suggestions. Designed for quick popup usage with keyboard shortcuts.
 
@@ -20,9 +20,11 @@ A beautiful, fast TUI (Terminal User Interface) for getting instant AI-powered c
 
 ### Required
 
-You need one of these AI CLIs installed:
+You need at least one of these AI CLIs installed:
 - [codex](https://github.com/anthropics/anthropic-tools) - Anthropic's codex CLI
 - [claude](https://github.com/anthropics/claude-cli) - Claude CLI
+- [gemini](https://github.com/google/generative-ai-cli) - Google Gemini CLI
+- [opencode](https://github.com/opencodedev/opencode) - OpenCode CLI
 
 ### Clipboard Support
 
@@ -58,8 +60,8 @@ bash install.sh
 
 Both methods will:
 1. Build the binary
-2. Install it to `/usr/local/bin/instassist`
-3. Copy the schema file to `/usr/local/share/instassist/`
+2. Install it to `/usr/local/bin/insta`
+3. Copy the schema file to `/usr/local/share/insta-assist/`
 
 ### Manual Build
 
@@ -67,10 +69,10 @@ Both methods will:
 # Build only
 make build
 # or
-go build -o instassist .
+go build -o insta .
 
 # Run from current directory
-./instassist
+./insta
 ```
 
 ### Uninstall
@@ -86,13 +88,13 @@ make uninstall
 Launch the interactive interface:
 
 ```bash
-instassist
+insta
 ```
 
 Or specify a default CLI:
 
 ```bash
-instassist -cli claude
+insta -cli claude
 ```
 
 ### Keyboard Shortcuts
@@ -100,8 +102,8 @@ instassist -cli claude
 #### Input Mode
 - `Enter` - Send prompt to AI
 - `Ctrl+R` - Send prompt and auto-execute first result
-- `Alt+Enter` or `Ctrl+J` - Insert newline (Shift+Enter may not work in all terminals)
-- `Tab` - Switch between codex/claude
+- `Shift+Enter` or `Alt+Enter` or `Ctrl+J` - Insert newline
+- `Ctrl+N` / `Ctrl+P` - Switch to next/previous CLI
 - `Ctrl+C` or `Esc` - Quit
 
 #### Viewing Mode (Results)
@@ -109,7 +111,7 @@ instassist -cli claude
 - `Enter` - Copy selected option to clipboard and exit
 - `Ctrl+R` - Execute selected option and exit
 - `Alt+Enter` - Start new prompt
-- `Tab` - Switch between codex/claude
+- `Ctrl+N` / `Ctrl+P` - Switch to next/previous CLI
 - `Ctrl+C`, `Esc`, or `q` - Quit without action
 
 ### CLI Mode (Non-Interactive)
@@ -118,22 +120,22 @@ Perfect for scripting and automation:
 
 ```bash
 # Send prompt and copy first option to clipboard
-instassist -prompt "list files in current directory"
+insta -prompt "list files in current directory"
 
 # Send prompt and output to stdout
-instassist -prompt "list files" -output stdout
+insta -prompt "list files" -output stdout
 
 # Execute the first option directly
-instassist -prompt "create a backup directory" -output exec
+insta -prompt "create a backup directory" -output exec
 
 # Select specific option (0-based index)
-instassist -prompt "git commands" -select 0 -output stdout
+insta -prompt "git commands" -select 0 -output stdout
 
 # Read from stdin
-echo "show disk usage" | instassist -output stdout
+echo "show disk usage" | insta -output stdout
 
 # Use with specific CLI
-instassist -cli codex -prompt "docker commands"
+insta -cli codex -prompt "docker commands"
 ```
 
 ### CLI Flags
@@ -154,13 +156,13 @@ Create a keyboard shortcut that runs:
 
 ```bash
 # For terminal emulator popup
-gnome-terminal --geometry=100x30 -- instassist
+gnome-terminal --geometry=100x30 -- insta
 
 # Or with kitty
-kitty --title "instassist" --override initial_window_width=1000 --override initial_window_height=600 instassist
+kitty --title "insta-assist" --override initial_window_width=1000 --override initial_window_height=600 insta
 
 # Or with alacritty
-alacritty --title "instassist" -e instassist
+alacritty --title "insta-assist" -e insta
 ```
 
 Bind to a key like `Super+Space` or `Ctrl+Alt+A`.
@@ -172,7 +174,7 @@ Create an automator Quick Action or use Hammerspoon:
 ```lua
 -- Hammerspoon config
 hs.hotkey.bind({"cmd", "ctrl"}, "space", function()
-    hs.execute("/usr/local/bin/alacritty -e instassist")
+    hs.execute("/usr/local/bin/alacritty -e insta")
 end)
 ```
 
@@ -182,18 +184,18 @@ Add to your config:
 
 ```
 # i3 config
-bindsym $mod+space exec alacritty --class floating -e instassist
+bindsym $mod+space exec alacritty --class floating -e insta
 for_window [class="floating"] floating enable
 
 # sway config
-bindsym $mod+space exec alacritty --class floating -e instassist
+bindsym $mod+space exec alacritty --class floating -e insta
 for_window [app_id="floating"] floating enable
 ```
 
 ## How It Works
 
 1. You enter a prompt describing what you want to do
-2. instassist sends it to your chosen AI CLI (codex or claude) with a JSON schema
+2. insta-assist sends it to your chosen AI CLI (codex, claude, gemini, or opencode) with a JSON schema
 3. The AI returns structured options with descriptions
 4. You select an option and choose to copy it or run it directly
 5. The app exits, ready for your next quick query
@@ -244,7 +246,7 @@ make clean
 ### Project Structure
 
 ```
-instassist/
+insta-assist/
 ├── main.go              # Main application code
 ├── options.schema.json  # JSON schema for AI responses
 ├── Makefile            # Build and installation
@@ -258,7 +260,7 @@ instassist/
 The app looks for `options.schema.json` in these locations (in order):
 1. Same directory as the binary
 2. Current working directory
-3. `/usr/local/share/instassist/`
+3. `/usr/local/share/insta-assist/`
 
 ## Troubleshooting
 
@@ -267,8 +269,8 @@ The app looks for `options.schema.json` in these locations (in order):
 - Or keep `options.schema.json` in the same directory as the binary
 
 **AI CLI not found**
-- Make sure `codex` or `claude` is installed and in your PATH
-- Test with `codex --version` or `claude --version`
+- Make sure one of the supported AI CLIs is installed and in your PATH: `codex`, `claude`, `gemini`, or `opencode`
+- Test with `codex --version`, `claude --version`, `gemini --version`, or `opencode --version`
 
 **Clipboard not working**
 - **Linux**: Make sure `xclip` or `xsel` is installed
@@ -280,7 +282,7 @@ The app looks for `options.schema.json` in these locations (in order):
   ```
 - If clipboard fails, you can use CLI mode with `-output stdout` instead:
   ```bash
-  instassist -prompt "your prompt" -output stdout
+  insta -prompt "your prompt" -output stdout
   ```
 
 **Colors not showing**

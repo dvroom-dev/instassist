@@ -28,10 +28,10 @@ type cliOption struct {
 const (
 	version        = "1.0.0"
 	defaultCLIName = "codex"
-	titleText      = "instassist"
+	titleText      = "insta-assist"
 
-	helpInput   = "tab: switch cli • ctrl+enter: send • ctrl+r: send & run • enter/alt+enter: newline"
-	helpViewing = "up/down/j/k: select • enter: copy & exit • ctrl+r: run & exit • alt+enter: new prompt • tab: switch cli • esc/q: quit"
+	helpInput   = "enter: send • ctrl+r: send & run • shift/alt+enter: newline"
+	helpViewing = "up/down/j/k: select • enter: copy & exit • ctrl+r: run & exit • alt+enter: new prompt • esc/q: quit"
 )
 
 type viewMode int
@@ -92,7 +92,7 @@ func main() {
 	flag.Parse()
 
 	if *versionFlag {
-		fmt.Printf("instassist version %s\n", version)
+		fmt.Printf("insta-assist version %s\n", version)
 		os.Exit(0)
 	}
 
@@ -142,8 +142,14 @@ func runNonInteractive(cliName, userPrompt string, selectIndex int, outputMode s
 	case "claude":
 		cmd := exec.CommandContext(ctx, "claude", "-p", fullPrompt, "--json-schema", schemaPath)
 		output, err = cmd.CombinedOutput()
+	case "gemini":
+		cmd := exec.CommandContext(ctx, "gemini", "--output-format", "json", fullPrompt)
+		output, err = cmd.CombinedOutput()
+	case "opencode":
+		cmd := exec.CommandContext(ctx, "opencode", "run", "--format", "json", fullPrompt)
+		output, err = cmd.CombinedOutput()
 	default:
-		log.Fatalf("unknown CLI: %s", cliName)
+		log.Fatalf("unknown CLI: %s (supported: codex, claude, gemini, opencode)", cliName)
 	}
 
 	if err != nil {
@@ -189,13 +195,19 @@ func runNonInteractive(cliName, userPrompt string, selectIndex int, outputMode s
 	}
 }
 
+func cliAvailable(name string) bool {
+	_, err := exec.LookPath(name)
+	return err == nil
+}
+
 func newModel(defaultCLI string) model {
 	schemaPath, err := optionsSchemaPath()
 	if err != nil {
 		log.Fatalf("schema not found: %v", err)
 	}
 
-	cliOptions := []cliOption{
+	// Define all possible CLI options
+	allCLIOptions := []cliOption{
 		{
 			name: "codex",
 			runPrompt: func(ctx context.Context, prompt string) ([]byte, error) {
@@ -211,6 +223,34 @@ func newModel(defaultCLI string) model {
 				return cmd.CombinedOutput()
 			},
 		},
+		{
+			name: "gemini",
+			runPrompt: func(ctx context.Context, prompt string) ([]byte, error) {
+				// gemini uses positional prompt and can output JSON
+				cmd := exec.CommandContext(ctx, "gemini", "--output-format", "json", prompt)
+				return cmd.CombinedOutput()
+			},
+		},
+		{
+			name: "opencode",
+			runPrompt: func(ctx context.Context, prompt string) ([]byte, error) {
+				// opencode uses "run" command with --format json
+				cmd := exec.CommandContext(ctx, "opencode", "run", "--format", "json", prompt)
+				return cmd.CombinedOutput()
+			},
+		},
+	}
+
+	// Filter to only available CLIs
+	var cliOptions []cliOption
+	for _, opt := range allCLIOptions {
+		if cliAvailable(opt.name) {
+			cliOptions = append(cliOptions, opt)
+		}
+	}
+
+	if len(cliOptions) == 0 {
+		log.Fatalf("No AI CLIs found. Please install at least one of: codex, claude, gemini, opencode")
 	}
 
 	input := textarea.New()
@@ -335,12 +375,22 @@ func (m model) handleInputKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	if msg.Type == tea.KeyCtrlC || msg.String() == "esc" {
 		return m, tea.Quit
 	}
-	if msg.String() == "tab" {
-		m.toggleCLI()
+	// CLI switching with Ctrl-N (next) and Ctrl-P (previous)
+	if msg.Type == tea.KeyCtrlN {
+		m.nextCLI()
 		return m, nil
 	}
-	// Submit prompt on enter, add newline on shift+enter.
+	if msg.Type == tea.KeyCtrlP {
+		m.prevCLI()
+		return m, nil
+	}
+	if isCtrlR(msg) {
+		// Ctrl+R: Submit and auto-execute first result
+		m.autoExecute = true
+		return m.submitPrompt()
+	}
 	if isShiftEnter(msg) {
+		// Shift/Alt+Enter: Add newline
 		// Pre-emptively expand height BEFORE adding newline to prevent scrolling
 		currentLines := strings.Count(m.input.Value(), "\n") + 1
 		newLines := currentLines + 1 // We're about to add a newline
@@ -352,18 +402,17 @@ func (m model) handleInputKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.input, cmd = m.input.Update(tea.KeyMsg{Type: tea.KeyEnter})
 		return m, cmd
 	}
-	if isCtrlR(msg) {
-		// Ctrl+R: Submit and auto-execute first result
-		m.autoExecute = true
-		return m.submitPrompt()
-	}
-	if isCtrlEnter(msg) {
-		// Ctrl+Enter: Submit prompt (no auto-execute)
+	if msg.Type == tea.KeyEnter {
+		// Plain Enter: Submit prompt
 		m.autoExecute = false
 		return m.submitPrompt()
 	}
-	// Plain Enter: Let textarea handle it (inserts newline)
-	// This allows paste to work correctly without triggering submit
+	if isCtrlEnter(msg) {
+		// Ctrl+Enter: Also submit prompt
+		m.autoExecute = false
+		return m.submitPrompt()
+	}
+	// Other keys: Let textarea handle them
 	return m.updateInput(msg)
 }
 
@@ -371,8 +420,11 @@ func (m model) handleViewingKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	switch {
 	case msg.Type == tea.KeyCtrlC || msg.String() == "esc" || msg.String() == "q":
 		return m, tea.Quit
-	case msg.String() == "tab":
-		m.toggleCLI()
+	case msg.String() == "ctrl+]":
+		m.nextCLI()
+		return m, nil
+	case msg.String() == "ctrl+[":
+		m.prevCLI()
 		return m, nil
 	case isShiftEnter(msg):
 		m.mode = modeInput
@@ -429,36 +481,55 @@ func (m model) handleRunningKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	if msg.Type == tea.KeyCtrlC || msg.String() == "esc" {
 		return m, tea.Quit
 	}
-	if msg.String() == "tab" {
-		m.toggleCLI()
+	// CLI switching with Ctrl-N (next) and Ctrl-P (previous)
+	if msg.Type == tea.KeyCtrlN {
+		m.nextCLI()
+		return m, nil
+	}
+	if msg.Type == tea.KeyCtrlP {
+		m.prevCLI()
 		return m, nil
 	}
 	return m, nil
 }
 
 func (m *model) adjustTextareaHeight() {
-	// Use textarea's actual line count (includes wrapping)
-	lines := m.input.LineCount()
+	// Count actual newlines in content
+	content := m.input.Value()
+	lines := strings.Count(content, "\n") + 1
 	if lines < 1 {
 		lines = 1
 	}
+
+	// Add one extra line if we have multi-line content to prevent viewport scroll issues
+	// The textarea viewport can scroll content when cursor is at end, so we need buffer
+	if lines > 1 {
+		lines = lines + 1
+	}
+
 	if lines > 20 {
 		lines = 20 // Cap at 20 lines for reasonable UI
 	}
 
-	oldHeight := m.input.Height()
 	m.input.SetHeight(lines)
-
-	// If height increased significantly (paste/multi-line), reset viewport
-	if lines > oldHeight && lines > 2 {
-		// Save cursor position and reset viewport to show all content
-		content := m.input.Value()
-		m.input.CursorStart()       // Reset viewport to top
-		m.input.SetCursor(len(content)) // Restore cursor to end by position
-	}
 }
 
 func (m model) updateInput(msg tea.Msg) (tea.Model, tea.Cmd) {
+	// For Enter keys, preemptively set height BEFORE update to prevent viewport scroll
+	if keyMsg, ok := msg.(tea.KeyMsg); ok {
+		if keyMsg.Type == tea.KeyEnter {
+			content := m.input.Value()
+			futureLines := strings.Count(content, "\n") + 2 // +1 for the newline we're about to add, +1 for line count
+			if futureLines > 1 {
+				futureLines = futureLines + 1 // Add buffer
+			}
+			if futureLines > 20 {
+				futureLines = 20
+			}
+			m.input.SetHeight(futureLines)
+		}
+	}
+
 	var cmd tea.Cmd
 	m.input, cmd = m.input.Update(msg)
 	// Always adjust height after any update
@@ -500,16 +571,18 @@ func (m model) submitPrompt() (tea.Model, tea.Cmd) {
 	return m, cmd
 }
 
-func (m model) toggleCLI() {
+func (m *model) nextCLI() {
 	if len(m.cliOptions) == 0 {
 		return
 	}
 	m.cliIndex = (m.cliIndex + 1) % len(m.cliOptions)
-	if m.mode == modeInput {
-		m.status = helpInput
-	} else if m.mode == modeViewing {
-		m.status = helpViewing
+}
+
+func (m *model) prevCLI() {
+	if len(m.cliOptions) == 0 {
+		return
 	}
+	m.cliIndex = (m.cliIndex - 1 + len(m.cliOptions)) % len(m.cliOptions)
 }
 
 func (m model) currentCLI() cliOption {
@@ -686,7 +759,7 @@ func optionsSchemaPath() (string, error) {
 	if cwd, err := os.Getwd(); err == nil {
 		tryPaths = append(tryPaths, filepath.Join(cwd, "options.schema.json"))
 	}
-	tryPaths = append(tryPaths, "/usr/local/share/instassist/options.schema.json")
+	tryPaths = append(tryPaths, "/usr/local/share/insta-assist/options.schema.json")
 
 	for _, p := range tryPaths {
 		if _, err := os.Stat(p); err == nil {
@@ -694,7 +767,7 @@ func optionsSchemaPath() (string, error) {
 		}
 	}
 
-	return "", fmt.Errorf("options.schema.json not found in executable directory, working directory, or /usr/local/share/instassist")
+	return "", fmt.Errorf("options.schema.json not found in executable directory, working directory, or /usr/local/share/insta-assist")
 }
 
 func (m model) View() string {
@@ -708,16 +781,25 @@ func (m model) View() string {
 	var b strings.Builder
 	cli := m.currentCLI().name
 
-	// Compact title line: "instassist • CLI: codex (tab to switch)" or "instassist • ⚡ running codex…"
+	// Compact title line with logo and all available CLIs
 	titleStyle := lipgloss.NewStyle().
 		Foreground(lipgloss.Color("205")).
 		Bold(true).
 		Underline(true)
-	cliStyle := lipgloss.NewStyle().
-		Foreground(lipgloss.Color("14")).
+	selectedCLIStyle := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("205")).
 		Bold(true)
-	cliLabelStyle := lipgloss.NewStyle().
-		Foreground(lipgloss.Color("241"))
+	otherCLIStyle := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("240")).
+		Italic(true)
+	shortcutStyle := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("241")).
+		Italic(true)
+
+	// Logo emoji in fuscia/purple
+	logoStyle := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("205"))
+	b.WriteString(logoStyle.Render("✨ "))
 
 	b.WriteString(titleStyle.Render(titleText))
 	b.WriteString(" • ")
@@ -728,9 +810,21 @@ func (m model) View() string {
 			Bold(true)
 		b.WriteString(runningStyle.Render(fmt.Sprintf("⚡ running %s…", cli)))
 	} else {
-		b.WriteString(cliLabelStyle.Render("CLI: "))
-		b.WriteString(cliStyle.Render(cli))
-		b.WriteString(cliLabelStyle.Render(" (tab to switch)"))
+		// Show all available CLIs with selected one highlighted
+		for i, opt := range m.cliOptions {
+			if i > 0 {
+				b.WriteString(" ")
+			}
+			if i == m.cliIndex {
+				b.WriteString(selectedCLIStyle.Render(opt.name))
+			} else {
+				b.WriteString(otherCLIStyle.Render(opt.name))
+			}
+		}
+		// Show keyboard shortcuts
+		if len(m.cliOptions) > 1 {
+			b.WriteString(shortcutStyle.Render(" (ctrl+p/n)"))
+		}
 	}
 	b.WriteString("\n")
 
@@ -743,7 +837,7 @@ func (m model) View() string {
 				Foreground(lipgloss.Color("15"))
 
 			b.WriteString("\n")
-			b.WriteString(promptLabelStyle.Render("📝 Prompt:"))
+			b.WriteString(promptLabelStyle.Render("Prompt:"))
 			b.WriteString("\n")
 			b.WriteString(promptStyle.Render(m.lastPrompt))
 			b.WriteString("\n")
@@ -793,14 +887,14 @@ func (m model) View() string {
 			b.WriteString("\n")
 		}
 	} else {
-		// Input mode: emoji on same line as prompt box
-		promptLabelStyle := lipgloss.NewStyle().
-			Foreground(lipgloss.Color("12")).
-			Bold(true)
-
+		// Input mode with neon neo-tokyo gradient colors
+		// Create neon gradient effect with multiple border colors
 		inputBoxStyle := lipgloss.NewStyle().
 			Border(lipgloss.RoundedBorder()).
-			BorderForeground(lipgloss.Color("12")).
+			BorderForeground(lipgloss.AdaptiveColor{
+				Light: "201",  // Bright magenta
+				Dark:  "51",   // Bright cyan
+			}).
 			Padding(0, 1)
 
 		// Calculate scroll indicator
@@ -808,10 +902,10 @@ func (m model) View() string {
 		visibleHeight := m.input.Height()
 		hasScroll := totalLines > visibleHeight
 
-		// Build scroll indicator column
+		// Build scroll indicator column with neon colors
 		var scrollIndicator string
 		if hasScroll {
-			indicatorStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("240"))
+			indicatorStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("201"))  // Bright magenta
 			scrollLines := make([]string, visibleHeight+2) // +2 for top and bottom borders
 			scrollLines[0] = "▲"
 			scrollLines[len(scrollLines)-1] = "▼"
@@ -824,10 +918,10 @@ func (m model) View() string {
 		// Render the prompt box
 		inputBox := inputBoxStyle.Render(m.input.View())
 
-		// Build emoji column (aligned to top)
+		// Build indent column (keep spacing where emoji was)
 		inputLines := strings.Split(inputBox, "\n")
 		emojiColumn := make([]string, len(inputLines))
-		emojiColumn[0] = promptLabelStyle.Render("📝")
+		emojiColumn[0] = "  " // Two spaces to maintain indentation
 		for i := 1; i < len(emojiColumn); i++ {
 			emojiColumn[i] = "  " // Two spaces to align
 		}
