@@ -86,3 +86,11 @@ func optionsSchemaPath() (string, error) {
 
 	return "", fmt.Errorf("options.schema.json not found in executable directory, working directory, or /usr/local/share/insta-assist")
 }
+
+func loadSchemaJSON(path string) (string, error) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return "", err
+	}
+	return string(data), nil
+}

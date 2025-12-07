@@ -86,6 +86,10 @@ func newModel(defaultCLI string) model {
 	if err != nil {
 		logFatalSchema(err)
 	}
+	schemaJSON, err := loadSchemaJSON(schemaPath)
+	if err != nil {
+		logFatalSchema(err)
+	}
 
 	allCLIOptions := []cliOption{
 		{
@@ -99,7 +103,7 @@ func newModel(defaultCLI string) model {
 		{
 			name: "claude",
 			runPrompt: func(ctx context.Context, prompt string) ([]byte, error) {
-				cmd := exec.CommandContext(ctx, "claude", "-p", prompt, "--json-schema", schemaPath)
+				cmd := exec.CommandContext(ctx, "claude", "-p", prompt, "--print", "--output-format", "json", "--json-schema", schemaJSON)
 				return cmd.CombinedOutput()
 			},
 		},

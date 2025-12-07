@@ -17,6 +17,10 @@ func runNonInteractive(cliName, userPrompt string, selectIndex int, outputMode s
 	if err != nil {
 		log.Fatalf("schema not found: %v", err)
 	}
+	schemaJSON, err := loadSchemaJSON(schemaPath)
+	if err != nil {
+		log.Fatalf("cannot read schema: %v", err)
+	}
 
 	fullPrompt := buildPrompt(userPrompt)
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
@@ -29,7 +33,7 @@ func runNonInteractive(cliName, userPrompt string, selectIndex int, outputMode s
 		cmd.Stdin = strings.NewReader(fullPrompt)
 		output, err = cmd.CombinedOutput()
 	case "claude":
-		cmd := exec.CommandContext(ctx, "claude", "-p", fullPrompt, "--json-schema", schemaPath)
+		cmd := exec.CommandContext(ctx, "claude", "-p", fullPrompt, "--print", "--output-format", "json", "--json-schema", schemaJSON)
 		output, err = cmd.CombinedOutput()
 	case "gemini":
 		cmd := exec.CommandContext(ctx, "gemini", "--output-format", "json", fullPrompt)
