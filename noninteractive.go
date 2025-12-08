@@ -25,7 +25,7 @@ func runNonInteractive(cliName, userPrompt string, selectIndex int, outputMode s
 	var output []byte
 	switch strings.ToLower(cliName) {
 	case "codex":
-		cmd := exec.CommandContext(ctx, "codex", "exec", "--output-schema", schemaPath)
+		cmd := exec.CommandContext(ctx, "codex", "exec", "--output-schema", schemaPath, "--skip-git-repo-check")
 		cmd.Stdin = strings.NewReader(fullPrompt)
 		output, err = cmd.CombinedOutput()
 	case "claude":

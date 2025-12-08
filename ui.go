@@ -95,7 +95,7 @@ func newModel(defaultCLI string, stayOpenExec bool) model {
 		{
 			name: "codex",
 			runPrompt: func(ctx context.Context, prompt string) ([]byte, error) {
-				cmd := exec.CommandContext(ctx, "codex", "exec", "--output-schema", schemaPath)
+				cmd := exec.CommandContext(ctx, "codex", "exec", "--output-schema", schemaPath, "--skip-git-repo-check")
 				cmd.Stdin = strings.NewReader(prompt)
 				return cmd.CombinedOutput()
 			},
