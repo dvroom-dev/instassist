@@ -56,6 +56,13 @@ This will:
 2. Install it to `/usr/local/bin/inst`
 3. Copy the schema file to `/usr/local/share/insta-assist/`
 
+### One-liner Install (curl)
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/<your-gh-user>/instassist/main/install.sh | bash
+# Optional: PREFIX=/usr/local sudo bash - for system-wide install
+```
+
 ### Install with `go install`
 
 ```bash

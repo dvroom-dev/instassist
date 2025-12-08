@@ -12,6 +12,7 @@
 - `make install` — build, copy binary to `/usr/local/bin`, and install schema to `/usr/local/share/insta-assist` (uses `sudo`); `make uninstall` reverses it.
 - `make go-install` — install via `go install ./cmd/inst` into `GO_INSTALL_DIR` (GOBIN if set, otherwise GOPATH/bin; override with `GO_INSTALL_DIR=/path`).
 - Manual build: `go build -o inst ./cmd/inst` if you need a quick local binary.
+- CI: `.github/workflows/ci.yml` runs gofmt (diff check), build, and `go test ./...` on pushes/PRs.
 
 ## Coding Style & Naming Conventions
 - Standard Go tooling: `gofmt`, `go vet` before pushing; keep imports grouped. Stick to Bubble Tea idioms (model/update/view) and keep UI state in `model` unless you break out packages.
