@@ -6,6 +6,31 @@ A beautiful, fast TUI (Terminal User Interface) for getting instant AI-powered c
 ![Go](https://img.shields.io/badge/Go-1.24+-00ADD8?logo=go)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
+## Install First
+
+### One-liner (curl)
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/<your-gh-user>/instassist/main/install.sh | bash
+# Optional: PREFIX=/usr/local sudo bash - for system-wide install
+```
+
+### Make targets
+
+```bash
+make install      # /usr/local/bin + schema to /usr/local/share/insta-assist
+make user-install # ~/.local/bin (no sudo)
+make go-install   # go install ./cmd/inst (GOBIN or GOPATH/bin)
+```
+
+### Manual build
+
+```bash
+make build
+# or
+go build -o inst ./cmd/inst
+```
+
 ## Features
 
 - **Fast & Lightweight**: Minimal TUI optimized for quick interactions
@@ -43,51 +68,6 @@ For clipboard functionality, you need:
   ```
 - **macOS**: Works out of the box (uses built-in `pbcopy`)
 - **Windows**: Works out of the box
-
-## Installation
-
-### Quick Install (Recommended)
-
-```bash
-make install
-```
-This will:
-1. Build the binary
-2. Install it to `/usr/local/bin/inst`
-3. Copy the schema file to `/usr/local/share/insta-assist/`
-
-### One-liner Install (curl)
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/<your-gh-user>/instassist/main/install.sh | bash
-# Optional: PREFIX=/usr/local sudo bash - for system-wide install
-```
-
-### Install with `go install`
-
-```bash
-make go-install
-# Default install dir: Go bin (GOBIN if set, otherwise GOPATH/bin). Override with GO_INSTALL_DIR=/path.
-# Binary name: inst (ensure the chosen dir is on your PATH for launchers)
-```
-
-### Manual Build
-
-```bash
-# Build only
-make build
-# or
-go build -o inst ./cmd/inst
-
-# Run from current directory
-./inst
-```
-
-### Uninstall
-
-```bash
-make uninstall
-```
 
 ## Usage
 
