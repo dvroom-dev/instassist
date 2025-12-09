@@ -119,20 +119,21 @@ func newModel(defaultCLI string, stayOpenExec bool, yoloDefault bool) model {
 		{
 			name: "codex",
 			runPrompt: func(ctx context.Context, prompt string, yolo bool) ([]byte, error) {
-				args := []string{"exec", "--output-schema", schemaPath, "--skip-git-repo-check", "--json"}
+				args := []string{"exec"}
 				if yolo {
 					args = append(args, "--yolo")
 				}
+				args = append(args, "--output-schema", schemaPath, "--skip-git-repo-check", "--json")
 				cmd := exec.CommandContext(ctx, "codex", args...)
 				cmd.Stdin = strings.NewReader(prompt)
 				return cmd.CombinedOutput()
 			},
 			resumePrompt: func(ctx context.Context, prompt string, sessionID string, yolo bool) ([]byte, error) {
-				args := []string{"exec", "resume"}
+				args := []string{"exec"}
 				if yolo {
 					args = append(args, "--yolo")
 				}
-				args = append(args, "--output-schema", schemaPath, "--skip-git-repo-check", "--json", sessionID, "-")
+				args = append(args, "resume", "--output-schema", schemaPath, "--skip-git-repo-check", "--json", sessionID, "-")
 				cmd := exec.CommandContext(ctx, "codex", args...)
 				cmd.Stdin = strings.NewReader(prompt)
 				return cmd.CombinedOutput()
