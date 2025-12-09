@@ -687,7 +687,8 @@ func (m model) optionLines(opt optionEntry, selected bool) optionRenderLines {
 	commentStart := -1
 	if desc != "" {
 		combined += "  # " + desc
-		commentStart = len([]rune(value)) + 2 // point to '#'
+		// Start comment at the first space before the '#', so spacing isn't highlighted.
+		commentStart = len([]rune(value))
 	}
 
 	wrapped := wrapWithStarts(combined, textWidth)
@@ -698,8 +699,12 @@ func (m model) optionLines(opt optionEntry, selected bool) optionRenderLines {
 		lineRunes := []rune(line)
 		start := wrapped.starts[i]
 		commentIdx := -1
-		if commentStart >= 0 && commentStart >= start && commentStart < start+len(lineRunes) {
-			commentIdx = commentStart - start
+		if commentStart >= 0 {
+			if commentStart < start {
+				commentIdx = 0
+			} else if commentStart < start+len(lineRunes) {
+				commentIdx = commentStart - start
+			}
 		}
 
 		prefix := indent
@@ -714,7 +719,7 @@ func (m model) optionLines(opt optionEntry, selected bool) optionRenderLines {
 		valueText := line
 		commentText := ""
 		if commentIdx >= 0 {
-			valueText = strings.TrimRight(string(lineRunes[:commentIdx]), " ")
+			valueText = string(lineRunes[:commentIdx])
 			commentText = string(lineRunes[commentIdx:])
 		}
 
