@@ -13,14 +13,17 @@ A beautiful, fast TUI (Terminal User Interface) for getting instant AI-powered c
 ```bash
 curl -fsSL https://raw.githubusercontent.com/robotButler/instassist/master/install.sh | bash
 
-# Or for system-wide install:
+# For a system-wide install with a proper /opt layout, prefer:
+#   sudo make install
+# (binary to /opt/instassist/inst with a symlink at /usr/local/bin/inst)
+# If you still want a single-line install under /usr/local/bin:
 curl -fsSL https://raw.githubusercontent.com/robotButler/instassist/master/install.sh | PREFIX=/usr/local sudo bash
 ```
 
 ### Make targets
 
 ```bash
-make install      # /usr/local/bin + schema to /usr/local/share/insta-assist
+make install      # /opt/instassist + symlink at /usr/local/bin; schema beside binary + /usr/local/share/insta-assist
 make user-install # ~/.local/bin (no sudo)
 make go-install   # go install ./cmd/inst (GOBIN or GOPATH/bin)
 ```
@@ -279,7 +282,7 @@ insta-assist/
 ## Configuration
 
 The app looks for `options.schema.json` in these locations (in order):
-1. Same directory as the binary
+1. Same directory as the binary (e.g., `/opt/instassist/` when using `make install`)
 2. Current working directory
 3. `/usr/local/share/insta-assist/`
 
@@ -287,7 +290,7 @@ The app looks for `options.schema.json` in these locations (in order):
 
 **"schema not found" error**
 - The binary embeds the schema and will write a temp copy if none is found. If it still fails, ensure the temp directory is writable.
-- Alternatively place `options.schema.json` in the same directory as the binary or install with `make install` to copy to `/usr/local/share/insta-assist/`.
+- Alternatively place `options.schema.json` in the same directory as the binary (e.g., `/opt/instassist/`) or install with `make install` to copy to both the binary directory and `/usr/local/share/insta-assist/`.
 
 **AI CLI not found**
 - Make sure one of the supported AI CLIs is installed and in your PATH: `codex`, `claude`, `gemini`, or `opencode`

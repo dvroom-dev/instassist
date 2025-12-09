@@ -9,7 +9,7 @@
 - `make build` — compile the `inst` binary with version ldflags.
 - `make run` — build then launch the TUI from the repo (uses alt screen).
 - `make test` — build and run smoke checks for `-version` and `-h`; use `go test ./...` for unit coverage (prompt parsing, schema lookup, exec flows).
-- `make install` — build, copy binary to `/usr/local/bin`, and install schema to `/usr/local/share/insta-assist` (uses `sudo`); `make uninstall` reverses it.
+- `make install` — build, copy binary to `/opt/instassist/inst`, symlink to `/usr/local/bin/inst`, and install schema beside the binary plus `/usr/local/share/insta-assist` (uses `sudo`); `make uninstall` reverses it.
 - `make go-install` — install via `go install ./cmd/inst` into `GO_INSTALL_DIR` (GOBIN if set, otherwise GOPATH/bin; override with `GO_INSTALL_DIR=/path`).
 - Manual build: `go build -o inst ./cmd/inst` if you need a quick local binary.
 - CI: `.github/workflows/ci.yml` runs gofmt (diff check), build, and `go test ./...` on pushes/PRs.
@@ -44,6 +44,6 @@
 ## Compatibility Notes
 - Tested Go toolchain target is 1.24.x; dependencies are pinned to released versions compatible with macOS and common Linux distros.
 - Clipboard defaults to xclip/xsel on Linux; on headless systems prefer `-output stdout` to avoid dependency errors.
-- Schema is required even for CLIs that accept positional prompts; the binary embeds `options.schema.json` and will write a temp copy if none is present on disk. If temp creation fails, place the schema next to the binary or install via `make install` for `/usr/local/share/insta-assist/`.
+- Schema is required even for CLIs that accept positional prompts; the binary embeds `options.schema.json` and will write a temp copy if none is present on disk. If temp creation fails, place the schema next to the binary (e.g., `/opt/instassist/`) or install via `make install` for `/usr/local/share/insta-assist/`.
 - Claude CLI expects the schema JSON string (not a file path) plus `--print --output-format json --json-schema "<json>"`. The app loads the schema contents (embedded or on-disk) and passes the JSON string; keep the schema valid JSON.
 - Quick manual verification: use tmux (or another terminal) to run `claude -p "check" --print --output-format json --json-schema "$(cat options.schema.json)"` and confirm structured output; do the same for `codex`/`gemini`/`opencode` with their documented flags.
