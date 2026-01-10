@@ -39,19 +39,8 @@ func runNonInteractive(cliName, userPrompt string, selectIndex int, outputMode s
 		}
 		cmd := exec.CommandContext(ctx, "claude", args...)
 		output, err = cmd.CombinedOutput()
-	case "gemini":
-		args := []string{"--output-format", "json"}
-		if yolo {
-			args = append(args, "--yolo")
-		}
-		args = append(args, fullPrompt)
-		cmd := exec.CommandContext(ctx, "gemini", args...)
-		output, err = cmd.CombinedOutput()
-	case "opencode":
-		cmd := exec.CommandContext(ctx, "opencode", "run", "--format", "json", fullPrompt)
-		output, err = cmd.CombinedOutput()
 	default:
-		log.Fatalf("unknown CLI: %s (supported: codex, claude, gemini, opencode)", cliName)
+		log.Fatalf("unknown CLI: %s (supported: claude, codex)", cliName)
 	}
 
 	if err != nil {

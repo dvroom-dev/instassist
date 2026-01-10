@@ -13,12 +13,12 @@ import (
 
 const (
 	version        = "1.0.0"
-	defaultCLIName = "codex"
+	defaultCLIName = "claude"
 )
 
 // Main is the entrypoint for the insta-assist application.
 func Main() {
-	cliFlag := flag.String("cli", defaultCLIName, "default CLI to use: codex, claude, gemini, or opencode")
+	cliFlag := flag.String("cli", defaultCLIName, "default CLI to use: claude or codex")
 	promptFlag := flag.String("prompt", "", "prompt to send (non-interactive mode)")
 	selectFlag := flag.Int("select", -1, "auto-select option by index (0-based, use with -prompt)")
 	outputFlag := flag.String("output", "clipboard", "output mode: clipboard, stdout, or exec")

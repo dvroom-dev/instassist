@@ -117,6 +117,25 @@ func newModel(defaultCLI string, stayOpenExec bool, yoloDefault bool) model {
 
 	allCLIOptions := []cliOption{
 		{
+			name: "claude",
+			runPrompt: func(ctx context.Context, prompt string, yolo bool) ([]byte, error) {
+				args := []string{"-p", prompt, "--print", "--output-format", "json", "--json-schema", schemaJSON}
+				if yolo {
+					args = append(args, "--dangerously-skip-permissions")
+				}
+				cmd := exec.CommandContext(ctx, "claude", args...)
+				return cmd.CombinedOutput()
+			},
+			resumePrompt: func(ctx context.Context, prompt string, sessionID string, yolo bool) ([]byte, error) {
+				args := []string{"-p", prompt, "--print", "--output-format", "json", "--json-schema", schemaJSON, "--resume", sessionID}
+				if yolo {
+					args = append(args, "--dangerously-skip-permissions")
+				}
+				cmd := exec.CommandContext(ctx, "claude", args...)
+				return cmd.CombinedOutput()
+			},
+		},
+		{
 			name: "codex",
 			runPrompt: func(ctx context.Context, prompt string, yolo bool) ([]byte, error) {
 				args := []string{"exec"}
@@ -139,57 +158,6 @@ func newModel(defaultCLI string, stayOpenExec bool, yoloDefault bool) model {
 				return cmd.CombinedOutput()
 			},
 		},
-		{
-			name: "claude",
-			runPrompt: func(ctx context.Context, prompt string, yolo bool) ([]byte, error) {
-				args := []string{"-p", prompt, "--print", "--output-format", "json", "--json-schema", schemaJSON}
-				if yolo {
-					args = append(args, "--dangerously-skip-permissions")
-				}
-				cmd := exec.CommandContext(ctx, "claude", args...)
-				return cmd.CombinedOutput()
-			},
-			resumePrompt: func(ctx context.Context, prompt string, sessionID string, yolo bool) ([]byte, error) {
-				args := []string{"-p", prompt, "--print", "--output-format", "json", "--json-schema", schemaJSON, "--resume", sessionID}
-				if yolo {
-					args = append(args, "--dangerously-skip-permissions")
-				}
-				cmd := exec.CommandContext(ctx, "claude", args...)
-				return cmd.CombinedOutput()
-			},
-		},
-		{
-			name: "gemini",
-			runPrompt: func(ctx context.Context, prompt string, yolo bool) ([]byte, error) {
-				args := []string{"--output-format", "json"}
-				if yolo {
-					args = append(args, "--yolo")
-				}
-				args = append(args, prompt)
-				cmd := exec.CommandContext(ctx, "gemini", args...)
-				return cmd.CombinedOutput()
-			},
-			resumePrompt: func(ctx context.Context, prompt string, sessionID string, yolo bool) ([]byte, error) {
-				args := []string{"--output-format", "json", "--resume", sessionID}
-				if yolo {
-					args = append(args, "--yolo")
-				}
-				args = append(args, prompt)
-				cmd := exec.CommandContext(ctx, "gemini", args...)
-				return cmd.CombinedOutput()
-			},
-		},
-		{
-			name: "opencode",
-			runPrompt: func(ctx context.Context, prompt string, yolo bool) ([]byte, error) {
-				cmd := exec.CommandContext(ctx, "opencode", "run", "--format", "json", prompt)
-				return cmd.CombinedOutput()
-			},
-			resumePrompt: func(ctx context.Context, prompt string, sessionID string, yolo bool) ([]byte, error) {
-				cmd := exec.CommandContext(ctx, "opencode", "run", "--format", "json", "--session", sessionID, prompt)
-				return cmd.CombinedOutput()
-			},
-		},
 	}
 
 	var cliOptions []cliOption
@@ -200,7 +168,7 @@ func newModel(defaultCLI string, stayOpenExec bool, yoloDefault bool) model {
 	}
 
 	if len(cliOptions) == 0 {
-		logFatalSchema(fmt.Errorf("no AI CLIs found. Please install at least one of: codex, claude, gemini, opencode"))
+		logFatalSchema(fmt.Errorf("no AI CLIs found. Please install at least one of: claude, codex"))
 	}
 
 	input := textarea.New()
