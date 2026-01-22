@@ -41,7 +41,8 @@ go build -o inst ./cmd/inst
 ## Features
 
 - **Fast & Lightweight**: Minimal TUI optimized for quick interactions
-- **AI-Powered**: Get command suggestions from `codex`, `claude`, `gemini`, or `opencode` CLIs
+- **AI-Powered**: Get command suggestions from `codex`, or `claude` CLIs
+- **Dual Modes**: Query mode for command options, Action mode for direct AI execution
 - **Beautiful UI**: Color-coded interface with intuitive navigation
 - **Flexible Output**: Copy to clipboard, execute directly, or output to stdout
 - **Keyboard-Driven**: Fully keyboard navigable for maximum efficiency
@@ -55,8 +56,6 @@ go build -o inst ./cmd/inst
 You need at least one of these AI CLIs installed:
 - [codex](https://github.com/anthropics/anthropic-tools) - Anthropic's codex CLI
 - [claude](https://github.com/anthropics/claude-cli) - Claude CLI
-- [gemini](https://github.com/google/generative-ai-cli) - Google Gemini CLI
-- [opencode](https://github.com/opencodedev/opencode) - OpenCode CLI
 
 ### Clipboard Support
 
@@ -95,19 +94,21 @@ inst -cli claude
 ### Keyboard Shortcuts
 
 #### Input Mode
-- `Enter` - Send prompt to AI
-- `Ctrl+R` - Send prompt and auto-execute first result
+- `Enter` - Send prompt to AI (in Action mode: run immediately)
+- `Ctrl+R` - Send prompt and auto-execute first result (Query mode only)
+- `Ctrl+A` - Toggle between Query/Action mode
 - `Ctrl+Y` - Toggle YOLO/auto-approve mode
 - `Ctrl+N` / `Ctrl+P` - Switch CLI
 - `Alt+Enter` or `Ctrl+J` - Insert newline
 - `Ctrl+C` or `Esc` - Quit
 
 #### Viewing Mode (Results)
-- `Up/Down` or `j/k` - Navigate options
-- `Enter` - Copy selected option to clipboard and exit
-- `Ctrl+R` - Execute selected option and exit
-- `a` - Refine/append prompt in the same session
+- `Up/Down` or `j/k` - Navigate options (Query mode)
+- `Enter` - Copy selected option and exit (Query) / New prompt (Action)
+- `Ctrl+R` - Execute selected option and exit (Query mode only)
+- `a` - Refine/append prompt in the same session (Query mode only)
 - `n` - Start a new prompt
+- `Ctrl+A` - Toggle between Query/Action mode
 - `Ctrl+Y` - Toggle YOLO/auto-approve mode
 - `Ctrl+N` / `Ctrl+P` - Switch CLI
 - `Ctrl+C`, `Esc`, or `q` - Quit without action
@@ -118,22 +119,37 @@ inst -cli claude
 - The app resumes the underlying session for each CLI:
   - codex: `codex exec resume <session-id> -`
   - claude: `--resume <session-id>`
-  - gemini: `--resume <session-id>`
-  - opencode: `--session <session-id>`
 - Press `n` to start a fresh session at any time.
+
+### Query vs Action Mode
+
+Toggle between modes with `Ctrl+A` or click the `query/action` toggle in the header.
+
+#### Query Mode (default)
+- Prompts the AI to return structured command options as JSON
+- You select an option, then copy or execute it
+- Supports refining results with `a` to continue the session
+
+#### Action Mode
+- Sends your prompt directly to the AI CLI without JSON constraints
+- The AI performs the requested action immediately
+- Output is displayed in the TUI when complete
+- Press `Enter` or `n` to start a new prompt
+
+**When to use each:**
+- **Query**: "show me git commands for undoing commits" → get options to choose from
+- **Action**: "create a README.md file for this project" → AI creates it directly
 
 ### YOLO / Auto-Approve
 
-- Toggle via `Ctrl+Y` or click the `yolo: on/off` pill in the header.
+- Toggle via `Ctrl+Y` or click the `yolo:on/off` pill in the header.
 - Flags applied when enabled:
   - codex: `--yolo`
   - claude: `--dangerously-skip-permissions`
-  - gemini: `--yolo`
-  - opencode: (no YOLO flag available)
 
 ### Mouse/Clicks
 
-- CLI tabs, the YOLO toggle, and result options are clickable in the TUI.
+- CLI tabs, the query/action mode toggle, the YOLO toggle, and result options are all clickable in the TUI.
 ### CLI Mode (Non-Interactive)
 
 Perfect for scripting and automation:
@@ -217,11 +233,19 @@ for_window [app_id="floating"] floating enable
 
 ## How It Works
 
+### Query Mode (default)
 1. You enter a prompt describing what you want to do
-2. insta-assist sends it to your chosen AI CLI (codex, claude, gemini, or opencode) with a JSON schema
+2. insta-assist sends it to your chosen AI CLI (codex, claude) with a JSON schema
 3. The AI returns structured options with descriptions
 4. You select an option and choose to copy it or run it directly
 5. The app exits, ready for your next quick query
+
+### Action Mode
+1. You enter a prompt describing an action you want performed
+2. insta-assist sends the raw prompt to the AI CLI
+3. The AI executes the action directly (e.g., creates files, modifies code)
+4. Output is displayed in the TUI
+5. Press Enter or `n` to start a new prompt
 
 ## Examples
 
@@ -295,8 +319,8 @@ The app looks for `options.schema.json` in these locations (in order):
 - Alternatively place `options.schema.json` in the same directory as the binary (e.g., `/opt/instassist/`) or install with `make install` to copy to both the binary directory and `/usr/local/share/insta-assist/`.
 
 **AI CLI not found**
-- Make sure one of the supported AI CLIs is installed and in your PATH: `codex`, `claude`, `gemini`, or `opencode`
-- Test with `codex --version`, `claude --version`, `gemini --version`, or `opencode --version`
+- Make sure one of the supported AI CLIs is installed and in your PATH: `codex`, or `claude`
+- Test with `codex --version`, or `claude --version`
 
 **Clipboard not working**
 - **Linux**: Make sure `xclip` or `xsel` is installed
