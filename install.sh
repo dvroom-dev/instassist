@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # insta-assist installer
 # Usage:
-#   curl -fsSL https://raw.githubusercontent.com/robotButler/instassist/master/install.sh | bash
+#   curl -fsSL https://raw.githubusercontent.com/dvroom-dev/instassist/master/install.sh | bash
 #
 # Options (via environment variables):
 #   PREFIX     - Installation prefix (default: $HOME/.local)
@@ -9,14 +9,14 @@
 #
 # Examples:
 #   # Install to ~/.local/bin (default, no sudo needed)
-#   curl -fsSL https://raw.githubusercontent.com/robotButler/instassist/master/install.sh | bash
+#   curl -fsSL https://raw.githubusercontent.com/dvroom-dev/instassist/master/install.sh | bash
 #
 #   # Install system-wide to /usr/local/bin
-#   curl -fsSL https://raw.githubusercontent.com/robotButler/instassist/master/install.sh | PREFIX=/usr/local sudo bash
+#   curl -fsSL https://raw.githubusercontent.com/dvroom-dev/instassist/master/install.sh | PREFIX=/usr/local sudo bash
 
 set -euo pipefail
 
-REPO_URL="https://github.com/robotButler/instassist.git"
+REPO_URL="https://github.com/dvroom-dev/instassist.git"
 PREFIX="${PREFIX:-$HOME/.local}"
 BINDIR="${BINDIR:-${PREFIX}/bin}"
 TARGET="${BINDIR}/inst"

@@ -12,14 +12,14 @@ A beautiful, fast TUI (Terminal User Interface) for getting instant AI-powered c
 
 ```bash
 # Per-user installation
-curl -fsSL https://raw.githubusercontent.com/robotButler/instassist/master/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/dvroom-dev/instassist/master/install.sh | bash
 
 # For a system-wide install with a proper /opt layout, prefer:
 #   make install
 # (builds as your user, then uses sudo only for the copy/link steps;
 #  binary to /opt/instassist/inst with a symlink at /usr/local/bin/inst)
 # If you still want a single-line install under /usr/local/bin:
-curl -fsSL https://raw.githubusercontent.com/robotButler/instassist/master/install.sh | PREFIX=/usr/local sudo bash
+curl -fsSL https://raw.githubusercontent.com/dvroom-dev/instassist/master/install.sh | PREFIX=/usr/local sudo bash
 ```
 
 ### Make targets
